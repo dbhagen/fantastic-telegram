@@ -1,9 +1,10 @@
 module.exports = {
+  root: true,
   env: {
-    browser: true,
+    node: true,
     es2021: true
   },
-  extends: 'standard',
+  extends: ['standard', 'eslint:recommended', 'prettier'],
   overrides: [
     {
       env: {
@@ -22,5 +23,6 @@ module.exports = {
     sourceType: 'module'
   },
   rules: {
+    'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
   }
 }
