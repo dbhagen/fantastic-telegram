@@ -52,7 +52,7 @@ const rateLimiterMiddleware = (req, res, next) => {
     .catch(() => {
       res
         .status(TOO_MANY_REQUESTS_STATUS_CODE)
-        .setHeader('content-type', 'application/json')
+        .setHeader('content-type', 'application/json', 'charset=utf-8')
         .setHeader('X-RateLimit-Limit', MAX_REQUEST_LIMIT)
         .setHeader('X-RateLimit-Remaining', 0)
         .setHeader('X-RateLimit-Reset', new Date(Date.now() + MAX_REQUEST_WINDOW_MS).toISOString())
