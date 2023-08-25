@@ -27,8 +27,11 @@ if (DEBUG) {
 /* The code is defining several constants related to rate limiting and handling too many requests. */
 const MAX_REQUEST_WINDOW_MS = process.env.MAX_REQUEST_WINDOW_MS || 60 * 1000 // Default: 1 minute
 const MAX_REQUEST_LIMIT = process.env.MAX_REQUEST_LIMIT || 5 // Default: 5 requests
-const TOO_MANY_REQUESTS_STATUS_CODE = process.env.TOO_MANY_REQUESTS_STATUS_CODE || 429
-const TOO_MANY_REQUESTS_MESSAGE = process.env.TOO_MANY_REQUESTS_MESSAGE || 'Too many requests from this IP, please try again later'
+const TOO_MANY_REQUESTS_STATUS_CODE =
+  process.env.TOO_MANY_REQUESTS_STATUS_CODE || 429
+const TOO_MANY_REQUESTS_MESSAGE =
+  process.env.TOO_MANY_REQUESTS_MESSAGE ||
+  'Too many requests from this IP, please try again later'
 if (DEBUG) {
   console.log('Rate limit window (ms): ' + MAX_REQUEST_WINDOW_MS)
   console.log('Rate limit max: ' + MAX_REQUEST_LIMIT)
@@ -38,15 +41,19 @@ MAX_REQUEST_WINDOW_MS, points: MAX_REQUEST_LIMIT })` is creating a rate limiter 
 `RateLimiterMemory` class from the `rate-limiter-flexible` library. */
 const rateLimiter = new rateLimitFlexible.RateLimiterMemory({
   duration: MAX_REQUEST_WINDOW_MS,
-  points: MAX_REQUEST_LIMIT
+  points: MAX_REQUEST_LIMIT,
 })
 const rateLimiterMiddleware = (req, res, next) => {
-  rateLimiter.consume(req.ip)
+  rateLimiter
+    .consume(req.ip)
     .then((rateLimiterRes) => {
       res.setHeader('Retry-After', rateLimiterRes.msBeforeNext / 1000)
       res.setHeader('X-RateLimit-Limit', MAX_REQUEST_LIMIT)
       res.setHeader('X-RateLimit-Remaining', rateLimiterRes.remainingPoints)
-      res.setHeader('X-RateLimit-Reset', new Date(Date.now() + rateLimiterRes.msBeforeNext).toISOString())
+      res.setHeader(
+        'X-RateLimit-Reset',
+        new Date(Date.now() + rateLimiterRes.msBeforeNext).toISOString()
+      )
       next()
     })
     .catch(() => {
@@ -55,12 +62,15 @@ const rateLimiterMiddleware = (req, res, next) => {
         .setHeader('content-type', 'application/json,charset=utf-8')
         .setHeader('X-RateLimit-Limit', MAX_REQUEST_LIMIT)
         .setHeader('X-RateLimit-Remaining', 0)
-        .setHeader('X-RateLimit-Reset', new Date(Date.now() + MAX_REQUEST_WINDOW_MS).toISOString())
+        .setHeader(
+          'X-RateLimit-Reset',
+          new Date(Date.now() + MAX_REQUEST_WINDOW_MS).toISOString()
+        )
         .setHeader('Retry-After', MAX_REQUEST_WINDOW_MS / 1000)
         .send(
           JSON.stringify({
             message: TOO_MANY_REQUESTS_MESSAGE,
-            status: TOO_MANY_REQUESTS_STATUS_CODE
+            status: TOO_MANY_REQUESTS_STATUS_CODE,
           })
         )
     })
@@ -72,15 +82,21 @@ When a GET request is made to this endpoint, the callback function will load a
 predefined file located in `/messageFiles/welcomeMessage.json`, modifying the `timestamp`
 attribute with a current timestamp. Finally, it will respond with the contents */
 app.get('/welcomeMessage', function (req, res) {
-  fs.readFile(path.join(__dirname, 'messageFiles', 'welcomeMessage.json'), 'utf8', function (_err, data) {
-    const returnData = JSON.parse(data)
-    returnData.timestamp = new Date().getTime()
-    const JSONReturnData = JSON.stringify(returnData)
-    if (DEBUG) {
-      console.log('FROM: ' + req.ip + ' GET: /welcomeMessage, result: ' + JSONReturnData)
+  fs.readFile(
+    path.join(__dirname, 'messageFiles', 'welcomeMessage.json'),
+    'utf8',
+    function (_err, data) {
+      const returnData = JSON.parse(data)
+      returnData.timestamp = new Date().getTime()
+      const JSONReturnData = JSON.stringify(returnData)
+      if (DEBUG) {
+        console.log(
+          'FROM: ' + req.ip + ' GET: /welcomeMessage, result: ' + JSONReturnData
+        )
+      }
+      res.end(JSONReturnData)
     }
-    res.end(JSONReturnData)
-  })
+  )
 })
 
 /* This code is defining the port on which the application will listen for incoming requests. */
