@@ -2,23 +2,12 @@ module.exports = {
   root: true,
   env: {
     node: true,
-    es2021: true,
+    jest: true,
   },
-  extends: ['standard', 'eslint:recommended', 'prettier'],
-  overrides: [
-    {
-      env: {
-        node: true,
-      },
-      files: ['.eslintrc.{js,cjs}'],
-      parserOptions: {
-        sourceType: 'script',
-      },
-    },
-  ],
+  extends: ['airbnb-base', 'plugin:jest/recommended', 'plugin:security/recommended', 'plugin:prettier/recommended'],
+  plugins: ['jest', 'security', 'prettier'],
   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
+    ecmaVersion: 2018,
   },
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
