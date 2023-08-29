@@ -1,0 +1,98 @@
+# Taken from: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
+# and: https://docs.github.com/en/free-pro-team@latest/actions/guides/publishing-docker-images
+# and adapted. More info on workflow syntax: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
+name: Lint the code, run tests, build and push Docker image
+
+on:
+  push:
+    # Match all branches *without* a / in the name.
+    # This will exclude "sub" branches, such as "feature branches",
+    # named something like: "feature/my-feature". Those branches will
+    # likely contain "work in progress" code, so we will run the tests
+    # on the local machine and avoid using up GitHub Actions credits
+    # (if applicable, such as in `private` repositories).
+    # Filter syntax info: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+    branches:
+      - '*'
+  pull_request:
+    # Since pull requests come from "third parties", we will automatically
+    # test everything coming from the outside world, for good measure.
+    # The `branches` tag could also be omitted, yielding the same effect here.
+    branches:
+      - '**'
+  release:
+    types: [published, edited]
+
+jobs:
+  # Run code tests before building the image, to ensure it is good to go
+  build:
+    name: Run code tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get current date
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    - name: Test with environment variables
+      run: echo $TAG_NAME - $RELEASE_NAME
+      env:
+        TAG_NAME: nightly-tag-${{ steps.date.outputs.date }}
+        RELEASE_NAME: nightly-release-${{ steps.date.outputs.date }}
+        GIT_HASH: $(git rev-parse --short "$GITHUB_SHA")
+    -
+      name: Checkout source
+      uses: actions/checkout@v2
+    -
+      name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    -
+      name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    -
+      name: Build docker
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        load: true
+        tags: ${{ env.TEST_TAG}}
+    -
+      name: Run tests
+      run: |
+        docker run --rm ${{ env.TEST_TAG }} 'npm run test'
+    -
+      name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: dbhagen/fantastic-telegram:${{ env.LATEST_TAG }} , dbhagen/fantastic-telegram:ci , dbhagen/fantastic-telegram:${{ steps.date.outputs.date }}
+
+  # Build and push the Docker image
+  # push_to_registry:
+  #   name: Build and push Docker image to Docker Hub
+  #   # ...but only when a `release` is `published`
+  #   if: github.event_name == 'release' # && github.event.action == 'published'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out the repo
+  #       uses: actions/checkout@v2
+  #       # if: ${{ github.ref == 'ref/head/master' }} # Info: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions#about-contexts-and-expressions
+
+  #     - name: Build and push image to the Docker Hub
+  #       uses: docker/build-push-action@v1 # Info: https://github.com/docker/build-push-action/tree/releases/v1#tags
+  #       # if: ${{ github.ref == 'ref/head/master' }}
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
+  #         repository: ${{ secrets.DOCKERHUB_REPOSITORY }}
+  #         tag_with_ref: true # Info: https://github.com/docker/build-push-action/tree/releases/v1#tag_with_ref
+  #         tag_with_sha: true # Info: https://github.com/docker/build-push-action/tree/releases/v1#tag_with_sha
+  #         tags: latest
+  #         # push: ${{ startsWith(github.ref, 'refs/tags/') }}

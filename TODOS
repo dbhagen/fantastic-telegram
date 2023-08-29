@@ -2,11 +2,11 @@ Application Service:
 - Build out REST API in express @done(2023-08-25)
 	- Refactor to router setup for better testing ability @done(2023-08-25)
 - Create JEST tests for API @done(2023-08-28)
-- Package into Dockerfile
+- Package into Dockerfile @done(2023-08-28)
 - Add GitHub actions for CI/CD
-	- Build Dockerfile and store in GitHub packages
+	- Build Dockerfile and store in Docker Hub
 	- Run automated tests
-	- Add production tag to Docker image and push to GitHub Packages
+	- Add production tag to Docker image and push to Docker Hub
 - Document environment variables and configuration into README.md
 
 reference: https://github.com/hagopj13/node-express-boilerplate/tree/master
