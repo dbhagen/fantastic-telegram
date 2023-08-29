@@ -41,7 +41,7 @@ jobs:
         GIT_HASH: $(git rev-parse --short "$GITHUB_SHA")
     -
       name: Checkout source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     -
       name: Set up QEMU
       uses: docker/setup-qemu-action@v2
