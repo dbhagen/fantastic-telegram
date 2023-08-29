@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  node-app:
+    platform: linux/amd64
+    image: dbhagen/fantastic-telegram:latest
+    container_name: node-app-prod
+    command: npm run start
