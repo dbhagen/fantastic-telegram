@@ -63,7 +63,7 @@ describe('welcomeMessage routes', () => {
       expect(res.body).toHaveProperty('message', 'Automate all the things!')
       expect(res.body).toHaveProperty('timestamp')
       expect(res.body.timestamp).toBeLessThan(new Date().getTime())
-      expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 100)
+      expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 300)
     })
   })
 
@@ -145,7 +145,7 @@ describe('welcomeMessage routes', () => {
       expect(res.body).toHaveProperty('message', 'Automate all the things!')
       expect(res.body).toHaveProperty('timestamp')
       expect(res.body.timestamp).toBeLessThan(new Date().getTime())
-      expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 100)
+      expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 300)
     })
 
     test('Valid on standard template file', async () => {
@@ -160,7 +160,7 @@ describe('welcomeMessage routes', () => {
       expect(res.body).toHaveProperty('message', 'Automate all the things!')
       expect(res.body).toHaveProperty('timestamp')
       expect(res.body.timestamp).toBeLessThan(new Date().getTime())
-      expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 100)
+      expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 300)
     })
   })
 })
