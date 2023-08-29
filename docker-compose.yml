@@ -12,7 +12,6 @@ services:
     networks:
       - node-network
 
-
 volumes:
   messageTemplates:
 
