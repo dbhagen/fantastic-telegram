@@ -55,7 +55,7 @@ jobs:
     - name: Build docker
       run: docker-compose -f docker-compose.yml build
     - name: Run tests
-      run: docker-compose -f docker-compose.test.yml run
+      run: docker-compose -f docker-compose.yml run --rm node-app npm test
     # -
     #   name: Build and push
     #   uses: docker/build-push-action@v4
