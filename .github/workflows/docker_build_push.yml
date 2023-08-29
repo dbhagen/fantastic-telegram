@@ -53,7 +53,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build docker
-      run: docker-compose run -f docker-compose.yml build
+      run: docker-compose -f docker-compose.yml build
     - name: Run tests
       run: docker-compose run -f docker-compose.test.yml
     # -
