@@ -23,9 +23,52 @@ on:
   release:
     types: [published, edited]
 
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group: [
+            # integration,
+            unit,
+          ]
+    steps:
+      - name: Test Cache
+        if: ${{ github.event.act }}
+        run: |
+          response=$(curl -s -X GET -H 'Authorization: Bearer foo' http://localhost:8080)
+          echo "response from curl= $response"
+
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: npm test -- tests/${{ matrix.test-group }}
+
   # Run code tests before building the image, to ensure it is good to go
   build:
+    if: ${{ !github.event.act }}
     name: Run code tests
     runs-on: ubuntu-latest
     env:
@@ -37,48 +80,71 @@ jobs:
       BRANCH:
 
     steps:
-    - name: Get BUILD_DATE
-      id: date
-      run: echo "BUILD_DATE=$(date +'%Y%m%dT%H%M')" >> $GITHUB_ENV
-    - name: Extract Branch Name
-      run: echo "BRANCH=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
-    - name: Set GITHUB_SHA_SHORT
-      run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
-    - name: Set TAG_NAME
-      run: echo "TAG_NAME=$BUILD_DATE-build" >> $GITHUB_ENV
-    - name: Set RELEASE_NAME
-      run: echo "RELEASE_NAME=$BUILD_DATE-release" >> $GITHUB_ENV
-    - name: Test with environment variables
-      run: echo $TAG_NAME - $RELEASE_NAME - $GITHUB_SHA_SHORT - $GITHUB_SHA
-    - name: Checkout source
-      uses: actions/checkout@v3
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: Build and push
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        tags: ${{ env.TEST_TAG}}
-        platforms: linux/amd64,linux/arm64
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-    - name: Run tests
-      run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
-    - name: Tag image
-      run:
-        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }};
-        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }};
-        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}${{ env.TAG_NAME }};
-        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}};
-        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }};
-        [[ "${{env.BRANCH}}" == "main" ]] && docker image tag ${{ env.TEST_TAG }} ${{ env.LATEST_TAG }};
-        docker image ls | grep dbhagen
-    - name: Push image
-      run: docker push --all-tags ${{ env.IMAGE_TAG }}
+      - name: Get BUILD_DATE
+        id: date
+        run: echo "BUILD_DATE=$(date -u +'%Y%m%dT%H%MZ')" >> $GITHUB_ENV
+      - name: Extract Branch Name
+        run: echo "BRANCH=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+      - name: Set GITHUB_SHA_SHORT
+        run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+      - name: Set TAG_NAME
+        run: echo "TAG_NAME=$BUILD_DATE-build" >> $GITHUB_ENV
+      - name: Set RELEASE_NAME
+        run: echo "RELEASE_NAME=$BUILD_DATE-release" >> $GITHUB_ENV
+      - name: Test with environment variables
+        run: echo $TAG_NAME - $RELEASE_NAME - $GITHUB_SHA_SHORT - $GITHUB_SHA
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          load: true
+          tags: |
+            ${{ env.TEST_TAG }}
+            ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }}
+            ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }}
+            ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}-${{ env.TAG_NAME }}
+            ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}
+            ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run tests
+        run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
+      - name: Push images to Docker Hub
+        uses: docker/build-push-action@v4
+        if: ${{ !github.event.act }}
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.TEST_TAG }}
+            ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }}
+            ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }}
+            ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}-${{ env.TAG_NAME }}
+            ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}
+            ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Push lastest if master
+        uses: docker/build-push-action@v4
+        if: |
+          !github.event.act && github.ref == 'refs/heads/main'
+        with:
+          context: .
+          push: true
+          tags: ${{ env.LATEST_TAG }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
