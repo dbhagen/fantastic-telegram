@@ -40,9 +40,10 @@ The following `npm` scripts are available:
 - `prettier`: Runs the code formatter.
 - `docker:clean`: Stops and removes all Docker containers.
 - `docker:prod`: Starts the production Docker container.
+- `docker:prod:build`: Builds the production Docker container.
 - `docker:dev`: Starts the development Docker container and serves debug information to the console.
 - `docker:test`: Starts the test Docker container and runs Jest unit and integration tests.
-- `act:push`: Pushes the application to the Local GitHub Actions simulator `Act`.
+- `act:push`: Pushes the application to the Local GitHub Actions simulator [`Act`](https://github.com/nektos/act).
 - `prepare`: Installs Husky, a git hook manager.
 
 ## Getting Started
@@ -112,6 +113,10 @@ For example, if you have a custom `welcomeMessage.json` file in the directory `/
 ```bash
 docker run -p 3000:3000 -v /home/user/message-files:/usr/src/node-app/messageFiles dbhagen/fantastic-telegram:latest
 ```
+
+## Thanks
+
+This was my first start-to-finish full NodeJS with fully automated Jest tests and GitHub Actions deployment. I'll circle back to pull out all the notes I have on resources I used to get this figured out, but for now I'll just say thanks to the internet at large for helping me out.
 
 ## Contributing
 
