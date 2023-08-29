@@ -66,6 +66,7 @@ jobs:
       with:
         context: .
         tags: ${{ env.TEST_TAG}}
+        platforms: linux/amd64,linux/arm64
         cache-from: type=gha
         cache-to: type=gha,mode=max
     - name: Run tests
@@ -79,5 +80,5 @@ jobs:
         docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }};
         [[ "${{env.BRANCH}}" == "main" ]] && docker image tag ${{ env.TEST_TAG }} ${{ env.LATEST_TAG }};
         docker image ls | grep dbhagen
-    # - name: Push image
-    #   run: docker push --all-tags ${{ env.IMAGE_TAG }}
+    - name: Push image
+      run: docker push --all-tags ${{ env.IMAGE_TAG }}
