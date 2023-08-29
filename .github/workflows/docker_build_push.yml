@@ -174,20 +174,15 @@ jobs:
         platform-group: [linux/amd64, linux/arm64]
     env:
       TEST_TAG: ${{ needs.setBuildEnvs.outputs.TEST_TAG }}
-      LATEST_TAG: ${{ needs.setBuildEnvs.outputs.LATEST_TAG }}
       IMAGE_TAG: ${{ needs.setBuildEnvs.outputs.IMAGE_TAG }}
-      TAG_NAME: ${{ needs.setBuildEnvs.outputs.TAG_NAME }}
-      GITHUB_SHA_SHORT: ${{ needs.setBuildEnvs.outputs.GITHUB_SHA_SHORT }}
-      BRANCH: ${{ needs.setBuildEnvs.outputs.BRANCH }}
-      RELEASE_NAME: ${{ needs.setBuildEnvs.outputs.RELEASE_NAME }}
 
     steps:
       - name: Set ARCH_INPUT
         run: echo "ARCH_INPUT=${{ matrix.platform-group }}" >> $GITHUB_ENV
       - name: Set ARCH_TAG
         run: echo "ARCH_TAG=${ARCH_INPUT%%/*}-${ARCH_INPUT#*/}" >> $GITHUB_ENV
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v2
       - name: Run tests against image
         uses: addnab/docker-run-action@v3
         with:
