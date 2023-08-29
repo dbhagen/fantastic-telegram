@@ -31,6 +31,7 @@ jobs:
     env:
       TEST_TAG: dbhagen/fantastic-telegram:ci
       LATEST_TAG: dbhagen/fantastic-telegram:latest
+      IMAGE_TAG: dbhagen/fantastic-telegram
 
     steps:
     - name: Get BUILD_DATE
@@ -39,9 +40,9 @@ jobs:
     - name: Set GITHUB_SHA_SHORT
       run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
     - name: Set TAG_NAME
-      run: echo "TAG_NAME=build-$BUILD_DATE" >> $GITHUB_ENV
+      run: echo "TAG_NAME=$BUILD_DATE-build" >> $GITHUB_ENV
     - name: Set RELEASE_NAME
-      run: echo "RELEASE_NAME=release-$BUILD_DATE" >> $GITHUB_ENV
+      run: echo "RELEASE_NAME=$BUILD_DATE-release" >> $GITHUB_ENV
     - name: Test with environment variables
       run: echo $TAG_NAME - $RELEASE_NAME - $GITHUB_SHA_SHORT - $GITHUB_SHA
     - name: Checkout source
@@ -56,9 +57,11 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build docker
-      run: docker build -t ${{ env.TEST_TAG }} .
+      run: docker build -t ${{ env.TEST_TAG }} -t ${{ env.LATEST_TAG }} -t ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }} -t ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }} .
     - name: Run tests
       run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
+    - name: Push image
+      run: docker push --all-tags ${{ env.TEST_TAG }}
     # -
     #   name: Build and push
     #   uses: docker/build-push-action@v4
