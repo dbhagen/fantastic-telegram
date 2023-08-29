@@ -34,7 +34,7 @@ The following `npm` scripts are available:
 
 - `start`: Starts the application in production mode.
 - `dev`: Starts the application in development mode and serves debug information to the console.
-- `test`: Runs the Jest unit and integration tests.
+- `test`: Runs the Jest unit, integration, and linting tests.
 - `coverage`: Generates a coverage report for the unit tests.
 - `lint`: Runs the linter.
 - `prettier`: Runs the code formatter.
@@ -42,7 +42,7 @@ The following `npm` scripts are available:
 - `docker:prod`: Starts the production Docker container.
 - `docker:prod:build`: Builds the production Docker container.
 - `docker:dev`: Starts the development Docker container and serves debug information to the console.
-- `docker:test`: Starts the test Docker container and runs Jest unit and integration tests.
+- `docker:test`: Starts the test Docker container and runs Jest unit, integration, and linting tests.
 - `act:push`: Pushes the application to the Local GitHub Actions simulator [`Act`](https://github.com/nektos/act).
 - `prepare`: Installs Husky, a git hook manager.
 
@@ -50,29 +50,39 @@ The following `npm` scripts are available:
 
 To get started, install the dependencies:
 
+```bash
 pnpm install
+```
 
 Then, start the application in development mode:
 
+```bash
 pnpm run dev
+```
 
 ## Testing
 
-To run the unit tests, use the following command:
+To run the unit, integration, and linting tests, use the following command:
 
+```bash
 pnpm run test
+```
 
 ## Linting
 
 To run the linter, use the following command:
 
+```bash
 pnpm run lint
+```
 
 ## Formatting
 
 To run the code formatter, use the following command:
 
+```bash
 pnpm run prettier
+```
 
 # Docker Instructions
 
