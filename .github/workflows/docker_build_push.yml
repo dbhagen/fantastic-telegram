@@ -1,7 +1,7 @@
 # Taken from: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
 # and: https://docs.github.com/en/free-pro-team@latest/actions/guides/publishing-docker-images
 # and adapted. More info on workflow syntax: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
-name: Lint the code, run tests, build and push Docker image
+name: Application CI/CD
 
 on:
   push:
@@ -31,10 +31,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        test-group: [integration, unit]
     steps:
       - name: Test Cache
         if: ${{ github.event.act }}
@@ -66,35 +62,83 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        run: npm test -- tests/${{ matrix.test-group }}
+        run: pnpm test
 
-  # Run code tests before building the image, to ensure it is good to go
-  build:
-    if: ${{ !github.event.act }}
-    name: Run code tests
+  setBuildEnvs:
+    needs: test
+    name: Set Build Environment Variables
     runs-on: ubuntu-latest
     env:
-      TEST_TAG: dbhagen/fantastic-telegram:ci
-      LATEST_TAG: dbhagen/fantastic-telegram:latest
+      TEST_TAG: ci
+      LATEST_TAG: latest
       IMAGE_TAG: dbhagen/fantastic-telegram
       TAG_NAME:
       GITHUB_SHA_SHORT:
       BRANCH:
-
+    outputs:
+      BUILD_DATE: ${{ steps.GetBUILD_DATE.outputs.BUILD_DATE }}
+      BRANCH: ${{ steps.GetBRANCH.outputs.BRANCH }}
+      GITHUB_SHA_SHORT: ${{ steps.GetGITHUB_SHA_SHORT.outputs.GITHUB_SHA_SHORT }}
+      TAG_NAME: ${{ steps.GetTAG_NAME.outputs.TAG_NAME }}
+      RELEASE_NAME: ${{ steps.GetRELEASE_NAME.outputs.RELEASE_NAME }}
+      TEST_TAG: ci
+      LATEST_TAG: latest
+      IMAGE_TAG: dbhagen/fantastic-telegram
     steps:
       - name: Get BUILD_DATE
-        id: date
-        run: echo "BUILD_DATE=$(date -u +'%Y%m%dT%H%MZ')" >> $GITHUB_ENV
+        id: GetBUILD_DATE
+        run: |
+          echo "BUILD_DATE=$(date -u +'%Y%m%dT%H%MZ')" >> $GITHUB_OUTPUT
+          echo "BUILD_DATE=$(date -u +'%Y%m%dT%H%MZ')" >> $GITHUB_ENV
       - name: Extract Branch Name
-        run: echo "BRANCH=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+        id: GetBRANCH
+        run: echo "BRANCH=$(echo ${GITHUB_REF##*/})" >> $GITHUB_OUTPUT
       - name: Set GITHUB_SHA_SHORT
-        run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+        id: GetGITHUB_SHA_SHORT
+        run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_OUTPUT
       - name: Set TAG_NAME
-        run: echo "TAG_NAME=$BUILD_DATE-build" >> $GITHUB_ENV
+        id: GetTAG_NAME
+        run: echo "TAG_NAME=$BUILD_DATE-build" >> $GITHUB_OUTPUT
       - name: Set RELEASE_NAME
-        run: echo "RELEASE_NAME=$BUILD_DATE-release" >> $GITHUB_ENV
+        id: GetRELEASE_NAME
+        run: echo "RELEASE_NAME=$BUILD_DATE-release" >> $GITHUB_OUTPUT
+
+  cleanLocalDocker:
+    if: ${{ github.event.act }}
+    needs: setBuildEnvs
+    name: Clean Local Docker Builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove old images by name
+        run: docker rmi -f $(docker images 'dbhagen/fantastic-telegram' -a -q) || true
+
+  # Run code tests before building the image, to ensure it is good to go
+  build:
+    needs: [setBuildEnvs, cleanLocalDocker]
+    if: ${{ always() }}
+    name: Docker Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform-group: [linux/amd64, linux/arm64]
+    outputs:
+      ARCH_TAG: ${{ steps.GetARCH_TAG.outputs.ARCH_TAG }}
+    env:
+      TEST_TAG: ${{ needs.setBuildEnvs.outputs.TEST_TAG }}
+      LATEST_TAG: ${{ needs.setBuildEnvs.outputs.LATEST_TAG }}
+      IMAGE_TAG: ${{ needs.setBuildEnvs.outputs.IMAGE_TAG }}
+      TAG_NAME: ${{ needs.setBuildEnvs.outputs.TAG_NAME }}
+      GITHUB_SHA_SHORT: ${{ needs.setBuildEnvs.outputs.GITHUB_SHA_SHORT }}
+      BRANCH: ${{ needs.setBuildEnvs.outputs.BRANCH }}
+      RELEASE_NAME: ${{ needs.setBuildEnvs.outputs.RELEASE_NAME }}
+
+    steps:
+      - name: Set ARCH_INPUT
+        run: echo "ARCH_INPUT=${{ matrix.platform-group }}" >> $GITHUB_ENV
+      - name: Set ARCH_TAG
+        run: echo "ARCH_TAG=${ARCH_INPUT%%/*}-${ARCH_INPUT#*/}" >> $GITHUB_ENV
       - name: Test with environment variables
-        run: echo $TAG_NAME - $RELEASE_NAME - $GITHUB_SHA_SHORT - $GITHUB_SHA
+        run: echo $ARCH_TAG - $TEST_TAG - $LATEST_TAG - $IMAGE_TAG - $TAG_NAME - $RELEASE_NAME - $GITHUB_SHA_SHORT - $GITHUB_SHA
       - name: Checkout source
         uses: actions/checkout@v3
       - name: Set up QEMU
@@ -106,47 +150,97 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Build image
         uses: docker/build-push-action@v4
         with:
           context: .
           load: true
           tags: |
-            ${{ env.TEST_TAG }}
-            ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }}
-            ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }}
-            ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}-${{ env.TAG_NAME }}
-            ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}
-            ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }}
-          # platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Run tests
-        run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
-      - name: Push images to Docker Hub
+            ${{ env.IMAGE_TAG }}:${{ env.TEST_TAG }}-${{ env.ARCH_TAG }}
+            ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-${{ env.GITHUB_SHA_SHORT }}
+            ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-${{ env.TAG_NAME }}
+            ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-${{ env.BRANCH}}-${{ env.TAG_NAME }}
+            ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-ci-${{ env.BRANCH}}
+            ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-ci-${{ env.BRANCH}}-${{ env.TAG_NAME }}
+          platforms: ${{ matrix.platform-group }}
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
+  docker-test:
+    needs: [setBuildEnvs, build]
+    name: Docker Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform-group: [linux/amd64, linux/arm64]
+    env:
+      TEST_TAG: ${{ needs.setBuildEnvs.outputs.TEST_TAG }}
+      LATEST_TAG: ${{ needs.setBuildEnvs.outputs.LATEST_TAG }}
+      IMAGE_TAG: ${{ needs.setBuildEnvs.outputs.IMAGE_TAG }}
+      TAG_NAME: ${{ needs.setBuildEnvs.outputs.TAG_NAME }}
+      GITHUB_SHA_SHORT: ${{ needs.setBuildEnvs.outputs.GITHUB_SHA_SHORT }}
+      BRANCH: ${{ needs.setBuildEnvs.outputs.BRANCH }}
+      RELEASE_NAME: ${{ needs.setBuildEnvs.outputs.RELEASE_NAME }}
+
+    steps:
+      - name: Set ARCH_INPUT
+        run: echo "ARCH_INPUT=${{ matrix.platform-group }}" >> $GITHUB_ENV
+      - name: Set ARCH_TAG
+        run: echo "ARCH_TAG=${ARCH_INPUT%%/*}-${ARCH_INPUT#*/}" >> $GITHUB_ENV
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Run tests against image
+        uses: addnab/docker-run-action@v3
+        with:
+          options: --rm --name fantastic-telegram-testenv-${{ env.ARCH_TAG }}
+          image: ${{ env.IMAGE_TAG }}:${{ env.TEST_TAG }}-${{ env.ARCH_TAG }}
+          run: npm test
+
+  push:
+    needs: [build, docker-test]
+    name: Docker Publish
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform-group: [linux/amd64, linux/arm64]
+    env:
+      TEST_TAG: ${{ needs.setBuildEnvs.outputs.TEST_TAG }}
+      LATEST_TAG: ${{ needs.setBuildEnvs.outputs.LATEST_TAG }}
+      IMAGE_TAG: ${{ needs.setBuildEnvs.outputs.IMAGE_TAG }}
+      TAG_NAME: ${{ needs.setBuildEnvs.outputs.TAG_NAME }}
+      GITHUB_SHA_SHORT: ${{ needs.setBuildEnvs.outputs.GITHUB_SHA_SHORT }}
+      BRANCH: ${{ needs.setBuildEnvs.outputs.BRANCH }}
+      RELEASE_NAME: ${{ needs.setBuildEnvs.outputs.RELEASE_NAME }}
+
+    steps:
+      - name: Set ARCH_INPUT
+        run: echo "ARCH_INPUT=${{ matrix.platform-group }}" >> $GITHUB_ENV
+      - name: Set ARCH_TAG
+        run: echo "ARCH_TAG=${ARCH_INPUT%%/*}-${ARCH_INPUT#*/}" >> $GITHUB_ENV
+      - name: Push image to Docker Hub
         uses: docker/build-push-action@v4
         if: ${{ !github.event.act }}
         with:
           context: .
           push: true
           tags: |
-            ${{ env.TEST_TAG }}
+            ${{ env.IMAGE_TAG }}:${{ env.TEST_TAG }}-${{ env.ARCH_TAG }}
             ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }}
             ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }}
             ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}-${{ env.TAG_NAME }}
             ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}
             ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }}
-          # platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform-group }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Push lastest if master
+      - name: Push lastest tag on image if master
         uses: docker/build-push-action@v4
         if: |
           !github.event.act && github.ref == 'refs/heads/main'
         with:
           context: .
           push: true
-          tags: ${{ env.LATEST_TAG }}
-          # platforms: linux/amd64,linux/arm64
+          tags: ${{ env.IMAGE_TAG }}:${{ env.LATEST_TAG }}
+          platforms: ${{ matrix.platform-group }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

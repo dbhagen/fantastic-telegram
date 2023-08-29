@@ -10,7 +10,7 @@ COPY package.json pnpm-lock.yaml ./
 
 USER node
 
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 COPY --chown=node:node . /usr/src/node-app/
 
