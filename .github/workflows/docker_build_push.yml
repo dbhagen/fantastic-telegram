@@ -114,7 +114,7 @@ jobs:
   # Run code tests before building the image, to ensure it is good to go
   build:
     needs: setBuildEnvs
-    name: Docker Build
+    name: Docker Build and Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -163,26 +163,6 @@ jobs:
           platforms: ${{ matrix.platform-group }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  docker-test:
-    needs: [setBuildEnvs, build]
-    if: needs.build.result == 'success'
-    name: Docker Test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform-group: [linux/amd64, linux/arm64]
-    env:
-      TEST_TAG: ${{ needs.setBuildEnvs.outputs.TEST_TAG }}
-      IMAGE_TAG: ${{ needs.setBuildEnvs.outputs.IMAGE_TAG }}
-
-    steps:
-      - name: Set ARCH_INPUT
-        run: echo "ARCH_INPUT=${{ matrix.platform-group }}" >> $GITHUB_ENV
-      - name: Set ARCH_TAG
-        run: echo "ARCH_TAG=${ARCH_INPUT%%/*}-${ARCH_INPUT#*/}" >> $GITHUB_ENV
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
       - name: Run tests against image
         uses: addnab/docker-run-action@v3
         with:
