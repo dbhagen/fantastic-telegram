@@ -34,11 +34,14 @@ jobs:
       IMAGE_TAG: dbhagen/fantastic-telegram
       TAG_NAME:
       GITHUB_SHA_SHORT:
+      BRANCH:
 
     steps:
     - name: Get BUILD_DATE
       id: date
       run: echo "BUILD_DATE=$(date +'%Y%m%dT%H%M')" >> $GITHUB_ENV
+    - name: Extract Branch Name
+      run: echo "BRANCH=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
     - name: Set GITHUB_SHA_SHORT
       run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
     - name: Set TAG_NAME
@@ -58,16 +61,24 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: Build docker
-      run: docker build --platform=linux/amd64,linux/arm64 -t ${{ env.IMAGE_TAG }} .
+    - name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        tags: ${{ env.IMAGE_TAG}}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
     - name: Run tests
       run: docker run --name test-runner --rm ${{ env.IMAGE_TAG }} npm test
     - name: Tag image
       run:
         docker image tag ${{ env.IMAGE_TAG }} ${{ env.TEST_TAG }};
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.LATEST_TAG }};
         docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }};
         docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }};
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}${{ env.TAG_NAME }};
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}};
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }};
+        [[ "${{env.BRANCH}}" == "main" ]] && docker image tag ${{ env.IMAGE_TAG }} ${{ env.LATEST_TAG }};
         docker image ls | grep dbhagen
-    - name: Push image
-      run: docker push --all-tags ${{ env.IMAGE_TAG }}
+    # - name: Push image
+    #   run: docker push --all-tags ${{ env.IMAGE_TAG }}
