@@ -34,10 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-group: [
-            # integration,
-            unit,
-          ]
+        test-group: [integration, unit]
     steps:
       - name: Test Cache
         if: ${{ github.event.act }}
@@ -53,6 +50,11 @@ jobs:
         with:
           version: 8
           run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup node
         uses: actions/setup-node@v3
