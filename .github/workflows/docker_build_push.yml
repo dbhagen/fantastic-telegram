@@ -116,7 +116,7 @@ jobs:
 
   # Run code tests before building the image, to ensure it is good to go
   build:
-    needs: setBuildEnvs
+    needs: [test, setBuildEnvs]
     name: Docker Build, Test, and Publish
     runs-on: ubuntu-latest
     strategy:
