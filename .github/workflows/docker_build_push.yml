@@ -28,9 +28,6 @@ jobs:
   build:
     name: Run code tests
     runs-on: ubuntu-latest
-    env:
-      DOCKER_USER: ${{ secrets.DOCKER_USER }}
-      DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
 
     steps:
     - name: Get BUILD_DATE
@@ -44,23 +41,20 @@ jobs:
       run: echo "RELEASE_NAME=$BUILD_DATE" >> $GITHUB_ENV
     - name: Test with environment variables
       run: echo $TAG_NAME - $RELEASE_NAME - $GITHUB_SHA_SHORT - $GITHUB_SHA
-    -
-      name: Checkout source
+    - name: Checkout source
       uses: actions/checkout@v3
-    -
-      name: Set up QEMU
+    - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
-    -
-      name: Set up Docker Buildx
+    - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    -
-      name: Login to Docker Hub
-      run: docker login -u $DOCKER_USER -p $DOCKER_PASS
-    -
-      name: Build docker
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Build docker
       run: docker-compose run -f docker-compose.yml build
-    -
-      name: Run tests
+    - name: Run tests
       run: docker-compose run -f docker-compose.test.yml
     # -
     #   name: Build and push
