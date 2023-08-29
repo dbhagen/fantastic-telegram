@@ -29,6 +29,7 @@ concurrency:
 
 jobs:
   test:
+    name: Run Node Jest tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -167,7 +168,7 @@ jobs:
           # cache-to: type=gha,mode=max
 
   docker-test:
-    needs: [setBuildEnvs, build]
+    needs: build
     name: Docker Test
     runs-on: ubuntu-latest
     strategy:
@@ -197,7 +198,7 @@ jobs:
           run: npm test
 
   push:
-    needs: [build, docker-test]
+    needs: docker-test
     name: Docker Publish
     runs-on: ubuntu-latest
     strategy:
