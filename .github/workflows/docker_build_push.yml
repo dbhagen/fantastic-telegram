@@ -30,15 +30,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Get current date
+    - name: Get BUILD_DATE
       id: date
-      run: echo "BUILD_DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+      run: echo "BUILD_DATE=$(date +'%Y%m%dT%H%M')" >> $GITHUB_ENV
+    - name: Set GITHUB_SHA_SHORT
+      run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+    - name: Set TAG_NAME
+      run: echo "$TAG_NAME=($BUILD_DATE)"
+    - name: Set RELEASE_NAME
+      run: echo "$RELEASE_NAME=($BUILD_DATE)"
     - name: Test with environment variables
       run: echo $TAG_NAME - $RELEASE_NAME
-      env:
-        TAG_NAME: build-tag-$BUILD_DATE
-        RELEASE_NAME: build-release-$BUILD_DATE
-        GIT_HASH: $(git rev-parse --short "$GITHUB_SHA")
     -
       name: Checkout source
       uses: actions/checkout@v3
