@@ -57,11 +57,11 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build docker
-      run: docker build -t ${{ env.TEST_TAG }} -t ${{ env.LATEST_TAG }} -t ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }} -t ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }} .
+      run: docker build -t built_image -t ${{ env.TEST_TAG }} -t ${{ env.LATEST_TAG }} -t ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }} -t ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }} .
     - name: Run tests
       run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
     - name: Push image
-      run: docker push --all-tags ${{ env.TEST_TAG }}
+      run: docker push --all-tags built_image
     # -
     #   name: Build and push
     #   uses: docker/build-push-action@v4
