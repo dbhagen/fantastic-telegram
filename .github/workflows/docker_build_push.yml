@@ -57,11 +57,18 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build docker
-      run: docker build -t built_image -t ${{ env.TEST_TAG }} -t ${{ env.LATEST_TAG }} -t ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }} -t ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }} .
+      run: docker build -t ${{ env.IMAGE_TAG }} .
     - name: Run tests
-      run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
+      run: docker run --name test-runner --rm ${{ env.IMAGE_TAG }} npm test
+    - name: Tag image
+      run:
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.TEST_TAG }}
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.LATEST_TAG }}
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }}
+        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }}
+        docker image ls | grep dbhagen
     - name: Push image
-      run: docker push --all-tags built_image
+      run: docker push --all-tags ${{ env.IMAGE_TAG }}
     # -
     #   name: Build and push
     #   uses: docker/build-push-action@v4
