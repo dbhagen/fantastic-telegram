@@ -163,8 +163,8 @@ jobs:
             ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-ci-${{ env.BRANCH}}
             ${{ env.IMAGE_TAG }}:${{ env.ARCH_TAG }}-ci-${{ env.BRANCH}}-${{ env.TAG_NAME }}
           platforms: ${{ matrix.platform-group }}
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   docker-test:
     needs: [setBuildEnvs, build]
