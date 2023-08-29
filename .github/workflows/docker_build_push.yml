@@ -181,8 +181,8 @@ jobs:
         run: echo "ARCH_INPUT=${{ matrix.platform-group }}" >> $GITHUB_ENV
       - name: Set ARCH_TAG
         run: echo "ARCH_TAG=${ARCH_INPUT%%/*}-${ARCH_INPUT#*/}" >> $GITHUB_ENV
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Run tests against image
         uses: addnab/docker-run-action@v3
         with:
