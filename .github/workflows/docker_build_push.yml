@@ -165,7 +165,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   docker-test:
-    needs: build
+    needs: [setBuildEnvs, build]
     if: needs.build.result == 'success'
     name: Docker Test
     runs-on: ubuntu-latest
@@ -196,7 +196,7 @@ jobs:
           run: npm test
 
   push:
-    needs: docker-test
+    needs: [setBuildEnvs, build, docker-test]
     if: needs.docker-test.result == 'success'
     name: Docker Publish
     runs-on: ubuntu-latest
