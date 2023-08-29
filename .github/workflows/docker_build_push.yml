@@ -65,20 +65,19 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        tags: ${{ env.IMAGE_TAG}}
+        tags: ${{ env.TEST_TAG}}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     - name: Run tests
-      run: docker run --name test-runner --rm ${{ env.IMAGE_TAG }} npm test
+      run: docker run --name test-runner --rm ${{ env.TEST_TAG }} npm test
     - name: Tag image
       run:
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.TEST_TAG }};
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }};
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }};
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}${{ env.TAG_NAME }};
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}};
-        docker image tag ${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }};
-        [[ "${{env.BRANCH}}" == "main" ]] && docker image tag ${{ env.IMAGE_TAG }} ${{ env.LATEST_TAG }};
+        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:${{ env.GITHUB_SHA_SHORT }};
+        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:${{ env.TAG_NAME }};
+        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:${{ env.BRANCH}}${{ env.TAG_NAME }};
+        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}};
+        docker image tag ${{ env.TEST_TAG }} ${{ env.IMAGE_TAG }}:ci-${{ env.BRANCH}}-${{ env.TAG_NAME }};
+        [[ "${{env.BRANCH}}" == "main" ]] && docker image tag ${{ env.TEST_TAG }} ${{ env.LATEST_TAG }};
         docker image ls | grep dbhagen
     # - name: Push image
     #   run: docker push --all-tags ${{ env.IMAGE_TAG }}
