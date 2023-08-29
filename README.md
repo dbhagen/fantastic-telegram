@@ -114,6 +114,16 @@ For example, if you have a custom `welcomeMessage.json` file in the directory `/
 docker run -p 3000:3000 -v /home/user/message-files:/usr/src/node-app/messageFiles dbhagen/fantastic-telegram:latest
 ```
 
+## Healthcheck
+
+The container image has a built in `HEALTHCHECK` defined as the following:
+
+```Dockerfile
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 CMD ["/usr/local/bin/node", "/usr/src/node-app/healthcheck.js"]
+```
+
+This will check the `/v1/` location for a healthy status code of `200`, every 10 seconds. It will fail if it does not receive that status code within 3 per request seconds, 3 requests in a row. It gives a 5 second grace period on container start up before checking.
+
 ## Thanks
 
 This was my first start-to-finish full NodeJS with fully automated Jest tests and GitHub Actions deployment. I'll circle back to pull out all the notes I have on resources I used to get this figured out, but for now I'll just say thanks to the internet at large for helping me out.
