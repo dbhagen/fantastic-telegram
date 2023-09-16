@@ -16,4 +16,5 @@ COPY --chown=node:node . /usr/src/node-app/
 
 EXPOSE 3000
 
+ENTRYPOINT [ "npm", "run", "start" ]
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 CMD ["/usr/local/bin/node", "/usr/src/node-app/healthcheck.js"]
