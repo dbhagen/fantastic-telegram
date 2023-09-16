@@ -8,5 +8,6 @@ Application Service:
 	- Run automated tests @done(2023-08-29)
 	- Add production tag to Docker image and push to Docker Hub @done(2023-08-29)
 - Document environment variables and configuration into README.md @done(2023-08-29)
+- Need to add option for AWS ECR image push
 
 reference: https://github.com/hagopj13/node-express-boilerplate/tree/master
