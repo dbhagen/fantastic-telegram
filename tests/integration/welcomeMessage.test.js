@@ -60,7 +60,7 @@ describe('welcomeMessage routes', () => {
       expect(res.header['content-type']).toEqual('application/json; charset=utf-8')
       expect(isValidJson(res.text)).toBe(true)
       expect(isValidJsonObject(res.text)).toBe(true)
-      // expect(res.body).toHaveProperty('message', 'Automate all the things!') // disable to allow file modifications
+      expect(res.body).toHaveProperty('message', 'Automate all the things new!') // disable to allow file modifications
       expect(res.body).toHaveProperty('timestamp')
       expect(res.body.timestamp).toBeLessThan(new Date().getTime())
       expect(res.body.timestamp).toBeGreaterThan(new Date().getTime() - 300)
